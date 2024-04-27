@@ -5,8 +5,8 @@
 macro(set_python_extension_suffix target)
   if(NOT DEFINED PYTHON_EXTENSION_SUFFIX)
     if(NOT Python3_FOUND)
-      message(WARNING "Python3_FOUND is false, using basic extension setting \
-          if(WIN32) .pyd else .so")
+      message(AUTHOR_WARNING "Python3_FOUND is false, \
+      using basic extension setting if(WIN32) .pyd else .so")
       if(WIN32)
         set(PYTHON_EXTENSION_SUFFIX ".pyd")
       else()
@@ -29,7 +29,7 @@ macro(set_python_extension_suffix target)
         else()
           set(PYTHON_EXTENSION_SUFFIX "${PYTHON_EXTENSION_SUFFIX}.so")
         endif()
-      # Using string(JOIN ...) allows multiline to keep source code neat
+        # Using string(JOIN ...) allows multiline to keep source code neat
       elseif(WIN32)
         string(JOIN "_" PYTHON_EXTENSION_SUFFIX
                ".cp${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}-win"
