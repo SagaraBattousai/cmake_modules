@@ -45,7 +45,7 @@ function(fetch_googletest)
       PROPERTIES FOLDER ${FGT_HIDDEN})
   elseif("HIDDEN" IN_LIST FGT_KEYWORDS_MISSING_VALUES)
     set_target_properties(gtest gtest_main gmock gmock_main
-                          PROPERTIES FOLDER Tests/googleTest)
+                          PROPERTIES FOLDER Tests/googletest)
 
   endif()
 
