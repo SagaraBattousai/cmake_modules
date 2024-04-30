@@ -60,21 +60,22 @@ function(add_sphinx_docs target_name)
     cmake_path(ABSOLUTE_PATH SPHINX_CONF_OUT BASE_DIRECTORY ${SPHINX_DIRECTORY})
   endif()
 
-  # Must be relative for setting in conf.py NOTE: (could do cleaver thing to
-  # modify rtd as well!)
+  # TODO: Maybe set DOXYGEN_OUTPUT_DIRECTORY to SPHINX_OUTPUT_DIRECTORY if
+  # DEFINED
+  #
+  # Must be relative to conf.py NOTE: (could do cleaver thing to modify rtd as
+  # well!) NOTE: DOXYGEN must be relative to ../sphinx but sphinx must be
+  # relative to sphinx .... I really should clean this up if I ever get time!
   if(NOT DEFINED SPHINX_DOXYGEN_OUTPUT_DIRECTORY)
     set(SPHINX_DOXYGEN_OUTPUT_DIRECTORY "doxygen_build")
   elseif(IS_ABSOLUTE ${SPHINX_DOXYGEN_OUTPUT_DIRECTORY})
     cmake_path(RELATIVE_PATH SPHINX_DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
                ${SPHINX_DIRECTORY})
-    # if(IS_ABSOLUTE ${ASD_DOXYGEN_OUTPUT_DIRECTORY})
-    # set(DOXYGEN_OUTPUT_DIRECTORY_ABS ${ASD_DOXYGEN_OUTPUT_DIRECTORY})
-    # cmake_path( RELATIVE_PATH ASD_DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
-    # ${CMAKE_CURRENT_LIST_DIR} OUTPUT_VARIABLE DOXYGEN_OUTPUT_DIRECTORY) else()
-    # set(DOXYGEN_OUTPUT_DIRECTORY ${ASD_DOXYGEN_OUTPUT_DIRECTORY}) cmake_path(
-    # ABSOLUTE_PATH ASD_DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
-    # ${CMAKE_CURRENT_LIST_DIR} OUTPUT_VARIABLE DOXYGEN_OUTPUT_DIRECTORY_ABS)
-    # endif()
+  else()
+    set(SPHINX_DOXYGEN_OUTPUT_DIRECTORY
+        "${CMAKE_CURRENT_LIST_DIR}/${SPHINX_DOXYGEN_OUTPUT_DIRECTORY}")
+    cmake_path(RELATIVE_PATH SPHINX_DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
+               ${SPHINX_DIRECTORY})
   endif()
 
   # TODO: So much to do!!!
@@ -85,8 +86,8 @@ function(add_sphinx_docs target_name)
     list(TRANSFORM SPHINX_CSS PREPEND "\"" OUTPUT_VARIABLE
                                            SPHINX_CSS_FILES_LIST)
     list(TRANSFORM SPHINX_CSS_FILES_LIST APPEND "\",")
-    # ^^TODO: May need to change to string (but with glue = "" as last elem
-    # should still have a , at the end
+    # last elem should still have a , at the end
+    list(JOIN SPHINX_CSS_FILES_LIST "" SPHINX_CSS_FILES_LIST)
 
     list(TRANSFORM SPHINX_CSS PREPEND "${SPHINX_STATIC_DIR}/")
   endif()
@@ -134,9 +135,9 @@ function(add_sphinx_docs target_name)
     OUTPUT ${SPHINX_HTML_INDEX_FILE}
     COMMAND ${CMAKE_COMMAND} -E rm -r ${SPHINX_OUTPUT_DIRECTORY}
     COMMAND
-      ${SPHINX_EXECUTABLE} -b html -j auto
+      ${Sphinx_EXECUTABLE} -b html -j auto
       "-Dbreathe_projects.${PROJECT_NAME}=${SPHINX_ABSOLUTE_DOXYGEN_XML_DIR}"
-      "-Dbreathe_default_project=${PROJECT_NAME}" ${SPHINX_ROOT_DIRECTORY}
+      "-Dbreathe_default_project=${PROJECT_NAME}" ${SPHINX_DIRECTORY}
       ${SPHINX_OUTPUT_DIRECTORY}
       # Note incremental build doesn't copy over css/js however I hate having to
       # specify manually so just remember to copy over your css and js if theyre
@@ -185,6 +186,9 @@ function(add_doxygen_docs target_name)
   # DOXYFILE_IN, OUTPUT_DIRECTORY must be relative in order for rtd to work as
   # this variable gets set in the resulting Doxyfile. We use
   # OUTPUT_DIRECTORY_ABS for CMake commands which is the absolute path variant
+  #
+  # REALLY IMPORTANT TODO: INSIST OUTPUT_DIRECTORY TO SAVE THIS UBER MESSY CODE
+  #
   if(NOT DEFINED DOXYGEN_OUTPUT_DIRECTORY)
     set(DOXYGEN_OUTPUT_DIRECTORY "doxygen_build")
     # set(DOXYGEN_OUTPUT_DIRECTORY_ABS
@@ -247,6 +251,7 @@ function(add_doxygen_docs target_name)
   endif()
 
   set(DOXYGEN_XML_OUTPUT_FILE "${DOXYGEN_OUTPUT_DIRECTORY_ABS}/xml/index.xml")
+  message(STATUS "set(DOXYGEN_XML_OUTPUT_FILE \"${DOXYGEN_OUTPUT_DIRECTORY_ABS}/xml/index.xml")
 
   # input files must be relative to working directory calling Doxygen (and needs
   # to be the same as sphinx's so ..... for now just CMAKE_CURRENT_LIST_DIR
