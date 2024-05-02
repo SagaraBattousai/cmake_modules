@@ -1,5 +1,8 @@
 include(PropertyUtils)
+include(ErrorUtils)
 # include(PathUtils)
+
+set(_DOCS_BUILD_DIR_NAME "docs_build")
 
 # NOTE: From what we've seen so far we want to stick to cmake_path(ABSOLUTE ..)
 # as it seems to be more reliable. We will therefore make some preconditions in
@@ -14,73 +17,44 @@ include(PropertyUtils)
 # TODO: The add_sphinx/doxygen_docs both need cleaning up for arg parsing and a
 # concrete agreement on whether root directory must be specified and which
 # things are relative etc
-
+#
+# TODO: maybe add target_link_documentation to handle the sphinx doxygen
+# relationship
+#
 function(add_sphinx_docs target_name)
 
   set(options BREATHE_DOMAIN_ALL_CPP)
-  set(oneValueArgs DIRECTORY OUTPUT_DIRECTORY CONF_IN CONF_OUT
-                   DOXYGEN_OUTPUT_DIRECTORY ICON_IMAGE_PATH)
+  set(oneValueArgs CONF_IN CONF_OUT ICON_IMAGE_PATH)
   set(multiValueArgs CSS JS BREATHE_DOMAIN_BY_EXTENSION_DICT RESTRUCTRED_TEXT)
 
   cmake_parse_arguments(PARSE_ARGV 1 SPHINX "${options}" "${oneValueArgs}"
                         "${multiValueArgs}")
 
-  # TODO: I think the original comment was: Improve this as it should add sub
-  # files too (new comment) instead of having to manually add all files....
-  # Though that is how add_library(... <sources>) works!
   if(NOT DEFINED SPHINX_RESTRUCTRED_TEXT)
-    message(
-      FATAL_ERROR
-        "Keyword RESTRUCTRED_TEXT must be specified with at least one file")
-  endif()
-
-  if(NOT DEFINED SPHINX_DIRECTORY)
-    set(SPHINX_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-  else()
-    cmake_path(ABSOLUTE_PATH SPHINX_DIRECTORY BASE_DIRECTORY
-               ${CMAKE_CURRENT_LIST_DIR})
-  endif()
-
-  if(NOT DEFINED SPHINX_OUTPUT_DIRECTORY)
-    set(SPHINX_OUTPUT_DIRECTORY "${SPHINX_DIRECTORY}/sphinx_build")
-  else()
-    cmake_path(ABSOLUTE_PATH SPHINX_OUTPUT_DIRECTORY BASE_DIRECTORY
-               ${CMAKE_CURRENT_LIST_DIR})
+    error_msg_with_func_call(
+      MODE FATAL_ERROR MSG
+      "Keyword RESTRUCTRED_TEXT must be specified with at least one file"
+      ${ARGV})
   endif()
 
   if(NOT DEFINED SPHINX_CONF_IN)
-    set(SPHINX_CONF_IN "${SPHINX_DIRECTORY}/conf.py.in")
+    error_msg_with_func_call(MODE FATAL_ERROR MSG "CONF_IN must specified."
+                             ${ARGV})
   else()
-    cmake_path(ABSOLUTE_PATH SPHINX_CONF_IN BASE_DIRECTORY ${SPHINX_DIRECTORY})
+    cmake_path(ABSOLUTE_PATH SPHINX_CONF_IN BASE_DIRECTORY
+               ${CMAKE_CURRENT_LIST_DIR})
   endif()
 
   if(NOT DEFINED SPHINX_CONF_OUT)
-    set(SPHINX_CONF_OUT "${SPHINX_DIRECTORY}/conf.py")
+    error_msg_with_func_call(MODE FATAL_ERROR MSG
+                             "DOXYFILE_OUT must specified." ${ARGV})
   else()
-    cmake_path(ABSOLUTE_PATH SPHINX_CONF_OUT BASE_DIRECTORY ${SPHINX_DIRECTORY})
+    cmake_path(ABSOLUTE_PATH SPHINX_CONF_OUT BASE_DIRECTORY
+               ${CMAKE_CURRENT_LIST_DIR})
   endif()
 
-  # TODO: Maybe set DOXYGEN_OUTPUT_DIRECTORY to SPHINX_OUTPUT_DIRECTORY if
-  # DEFINED
-  #
-  # Must be relative to conf.py NOTE: (could do cleaver thing to modify rtd as
-  # well!) NOTE: DOXYGEN must be relative to ../sphinx but sphinx must be
-  # relative to sphinx .... I really should clean this up if I ever get time!
-  if(NOT DEFINED SPHINX_DOXYGEN_OUTPUT_DIRECTORY)
-    set(SPHINX_DOXYGEN_OUTPUT_DIRECTORY "doxygen_build")
-  elseif(IS_ABSOLUTE ${SPHINX_DOXYGEN_OUTPUT_DIRECTORY})
-    cmake_path(RELATIVE_PATH SPHINX_DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
-               ${SPHINX_DIRECTORY})
-  else()
-    set(SPHINX_DOXYGEN_OUTPUT_DIRECTORY
-        "${CMAKE_CURRENT_LIST_DIR}/${SPHINX_DOXYGEN_OUTPUT_DIRECTORY}")
-    cmake_path(RELATIVE_PATH SPHINX_DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
-               ${SPHINX_DIRECTORY})
-  endif()
-
-  # TODO: So much to do!!!
-
-  set(SPHINX_STATIC_DIR "${SPHINX_DIRECTORY}/_static")
+  cmake_path(GET SPHINX_CONF_IN PARENT_PATH SPHINX_BASE_DIRECTORY)
+  set(SPHINX_STATIC_DIR "${SPHINX_BASE_DIRECTORY}/_static")
 
   if(DEFINED SPHINX_CSS)
     list(TRANSFORM SPHINX_CSS PREPEND "\"" OUTPUT_VARIABLE
@@ -95,15 +69,10 @@ function(add_sphinx_docs target_name)
   if(DEFINED SPHINX_JS)
     list(TRANSFORM SPHINX_JS PREPEND "\"" OUTPUT_VARIABLE SPHINX_JS_FILES_LIST)
     list(TRANSFORM SPHINX_JS_FILES_LIST APPEND "\",")
+    list(JOIN SPHINX_JS_FILES_LIST "" SPHINX_JS_FILES_LIST)
 
     list(TRANSFORM SPHINX_JS PREPEND "${SPHINX_STATIC_DIR}/")
   endif()
-
-  # Could use list(TRANSFORM but atm its just as easy to write twice Order
-  # matters set(SPHINX_CSS_FILES_LIST " \"css/style.css\", \"css/colours.css\",
-  # \"css/defaults.css\", \"css/dark.css\", \"css/light.css\", ")
-
-  # set(SPHINX_JS_FILES_LIST "") #"\"js/falcie_docs.js\","
 
   # Is this correct? can we double quote for the caller ??
   # set(SPHINX_ICON_IMAGE_PATH "\"img/<ICON_IMAGE>.svg\"")
@@ -121,29 +90,38 @@ function(add_sphinx_docs target_name)
       ")
   endif()
 
-  set(SPHINX_RELATIVE_DOXYGEN_XML_DIR "${SPHINX_DOXYGEN_OUTPUT_DIRECTORY}/xml")
-  set(SPHINX_ABSOLUTE_DOXYGEN_XML_DIR
-      "${SPHINX_DIRECTORY}/${SPHINX_RELATIVE_DOXYGEN_XML_DIR}")
+  set(DOXYGEN_XML_DIR "${_DOCS_BUILD_DIR_NAME}/xml")
+
+  cmake_path(
+    ABSOLUTE_PATH DOXYGEN_XML_DIR BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    OUTPUT_VARIABLE SPHINX_ABSOLUTE_DOXYGEN_XML_DIR)
+
+  cmake_path(
+    RELATIVE_PATH SPHINX_ABSOLUTE_DOXYGEN_XML_DIR BASE_DIRECTORY
+    ${SPHINX_BASE_DIRECTORY} OUTPUT_VARIABLE SPHINX_RELATIVE_DOXYGEN_XML_DIR)
 
   configure_file(${SPHINX_CONF_IN} ${SPHINX_CONF_OUT} @ONLY)
+
+  set(SPHINX_OUTPUT_DIRECTORY "${_DOCS_BUILD_DIR_NAME}/sphinx")
 
   set(SPHINX_HTML_INDEX_FILE "${SPHINX_OUTPUT_DIRECTORY}/index.html")
 
   # Why do I need the -Dbreathe_XYZ since theyre in the conf.py but i should
-  # trust old james
+  # trust old james. Haha i just added the same comment below :P
   add_custom_command(
     OUTPUT ${SPHINX_HTML_INDEX_FILE}
-    COMMAND ${CMAKE_COMMAND} -E rm -r ${SPHINX_OUTPUT_DIRECTORY}
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${SPHINX_OUTPUT_DIRECTORY}
     COMMAND
       ${Sphinx_EXECUTABLE} -b html -j auto
+      # TODO: Remember why we need these.. because rtd wont have this.. right?
       "-Dbreathe_projects.${PROJECT_NAME}=${SPHINX_ABSOLUTE_DOXYGEN_XML_DIR}"
-      "-Dbreathe_default_project=${PROJECT_NAME}" ${SPHINX_DIRECTORY}
+      "-Dbreathe_default_project=${PROJECT_NAME}" ${SPHINX_BASE_DIRECTORY}
       ${SPHINX_OUTPUT_DIRECTORY}
       # Note incremental build doesn't copy over css/js however I hate having to
       # specify manually so just remember to copy over your css and js if theyre
       # different. I'll add a copy if different later.
       # ${SPHINX_RESTRUCTRED_TEXT} ${SPHINX_CSS} ${SPHINX_JS}
-    WORKING_DIRECTORY ${SPHINX_DIRECTORY}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     MAIN_DEPENDENCY ${SPHINX_CONF_OUT}
     DEPENDS ${SPHINX_RESTRUCTRED_TEXT}
             "${SPHINX_ABSOLUTE_DOXYGEN_XML_DIR}/index.xml" ${SPHINX_CSS}
@@ -154,70 +132,37 @@ function(add_sphinx_docs target_name)
 
 endfunction()
 
-# The following Variables will be set and used in configuiring Doxyfile.in: {
-# DOXYGEN_INPUT_FILES, DOXYGEN_OUTPUT_DIRECTORY, DOXYGEN_XML_INDEX_FILE,
-# DOXYFILE_IN, DOXYFILE_OUT }
-#
-# TODO: Decide whether to add flag to let target be added to ALL
-#
 function(add_doxygen_docs target_name)
 
+  # Possibly add ability to put in binary but not needed at all.
   set(options GENERATE_XML GENERATE_HTML GENERATE_MAN GENERATE_LATEX
-              JAVADOC_BANNER)
-  set(oneValueArgs DIRECTORY OUTPUT_DIRECTORY DOXYFILE_IN DOXYFILE_OUT)
+              JAVADOC_BANNER ALL)
+  set(oneValueArgs DOXYFILE_IN DOXYFILE_OUT)
   set(multiValueArgs TARGETS)
 
   cmake_parse_arguments(PARSE_ARGV 1 DOXYGEN "${options}" "${oneValueArgs}"
                         "${multiValueArgs}")
 
   if(NOT DEFINED DOXYGEN_TARGETS)
-    message(
-      FATAL_ERROR "TARGETS keyword must specified with at least one target.")
-  endif()
-
-  if(NOT DEFINED DOXYGEN_DIRECTORY)
-    set(DOXYGEN_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-  else()
-    cmake_path(ABSOLUTE_PATH DOXYGEN_DIRECTORY BASE_DIRECTORY
-               ${CMAKE_CURRENT_LIST_DIR})
-  endif()
-
-  # Also relative to run on rtd function path in sphinx.conf When configuring
-  # DOXYFILE_IN, OUTPUT_DIRECTORY must be relative in order for rtd to work as
-  # this variable gets set in the resulting Doxyfile. We use
-  # OUTPUT_DIRECTORY_ABS for CMake commands which is the absolute path variant
-  #
-  # REALLY IMPORTANT TODO: INSIST OUTPUT_DIRECTORY TO SAVE THIS UBER MESSY CODE
-  #
-  if(NOT DEFINED DOXYGEN_OUTPUT_DIRECTORY)
-    set(DOXYGEN_OUTPUT_DIRECTORY "doxygen_build")
-    # set(DOXYGEN_OUTPUT_DIRECTORY_ABS
-    # "${CMAKE_CURRENT_LIST_DIR}/doxygen_build")
-    set(DOXYGEN_OUTPUT_DIRECTORY_ABS "${DOXYGEN_DIRECTORY}/doxygen_build")
-  elseif(IS_ABSOLUTE ${DOXYGEN_OUTPUT_DIRECTORY})
-    set(DOXYGEN_OUTPUT_DIRECTORY_ABS ${DOXYGEN_OUTPUT_DIRECTORY})
-    cmake_path(RELATIVE_PATH DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
-               ${DOXYGEN_DIRECTORY})
-    # ${CMAKE_CURRENT_LIST_DIR})
-  else()
-    cmake_path(
-      ABSOLUTE_PATH DOXYGEN_OUTPUT_DIRECTORY BASE_DIRECTORY
-      ${DOXYGEN_DIRECTORY} OUTPUT_VARIABLE DOXYGEN_OUTPUT_DIRECTORY_ABS)
-    # ${CMAKE_CURRENT_LIST_DIR} OUTPUT_VARIABLE DOXYGEN_OUTPUT_DIRECTORY_ABS)
+    error_msg_with_func_call(
+      MODE FATAL_ERROR MSG
+      "TARGETS keyword must specified with at least one target." ${ARGV})
   endif()
 
   if(NOT DEFINED DOXYGEN_DOXYFILE_IN)
-    set(DOXYFILE_IN "${DOXYGEN_DIRECTORY}/Doxyfile.in")
+    error_msg_with_func_call(MODE FATAL_ERROR MSG "DOXYFILE_IN must specified."
+                             ${ARGV})
   else()
     cmake_path(ABSOLUTE_PATH DOXYGEN_DOXYFILE_IN BASE_DIRECTORY
-               ${DOXYGEN_DIRECTORY} OUTPUT_VARIABLE DOXYFILE_IN)
+               ${CMAKE_CURRENT_LIST_DIR} OUTPUT_VARIABLE DOXYFILE_IN)
   endif()
 
   if(NOT DEFINED DOXYGEN_DOXYFILE_OUT)
-    set(DOXYFILE_OUT "${DOXYGEN_DIRECTORY}/Doxyfile")
+    error_msg_with_func_call(MODE FATAL_ERROR MSG
+                             "DOXYFILE_OUT must specified." ${ARGV})
   else()
     cmake_path(ABSOLUTE_PATH DOXYGEN_DOXYFILE_OUT BASE_DIRECTORY
-               ${DOXYGEN_DIRECTORY} OUTPUT_VARIABLE DOXYFILE_OUT)
+               ${CMAKE_CURRENT_LIST_DIR} OUTPUT_VARIABLE DOXYFILE_OUT)
   endif()
 
   if(DOXYGEN_GENERATE_XML)
@@ -250,20 +195,16 @@ function(add_doxygen_docs target_name)
     set(DOXYGEN_JAVADOC_BANNER NO)
   endif()
 
-  set(DOXYGEN_XML_OUTPUT_FILE "${DOXYGEN_OUTPUT_DIRECTORY_ABS}/xml/index.xml")
-  message(STATUS "set(DOXYGEN_XML_OUTPUT_FILE \"${DOXYGEN_OUTPUT_DIRECTORY_ABS}/xml/index.xml")
+  # When set in Doxyfile it must be relative as the values set would be
+  # incorrect on RTD. However for the cmake code we prefer absolute paths as we
+  # can be sure this function has been called in order to configure.
+  #
+  set(DOXYGEN_OUTPUT_DIRECTORY ${_DOCS_BUILD_DIR_NAME})
 
-  # input files must be relative to working directory calling Doxygen (and needs
-  # to be the same as sphinx's so ..... for now just CMAKE_CURRENT_LIST_DIR
-  # (and/or potentially add function argument but far far too much time wasted)
-  # cmake_path(GET DOXYFILE_IN PARENT_PATH DOXYGEN_CONFIG_DIRECTORY)
+  set(DOXYGEN_XML_OUTPUT_FILE
+      "${CMAKE_CURRENT_LIST_DIR}/${DOXYGEN_OUTPUT_DIRECTORY}/xml/index.xml")
 
-  # set(DOXYGEN_WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-
-  # May need to pass directory above this. DOXYGEN_INPUT_FILES DOXYGEN_DIRECTORY
-  # ${DOXYGEN_WORKING_DIRECTORY} TARGETS
-  _get_target_doxygen_sources(DOXYGEN_INPUT_FILES DOXYGEN_DIRECTORY
-                              ${DOXYGEN_DIRECTORY} TARGETS ${DOXYGEN_TARGETS})
+  _get_target_doxygen_sources(DOXYGEN_INPUT_FILES TARGETS ${DOXYGEN_TARGETS})
 
   configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
 
@@ -274,12 +215,15 @@ function(add_doxygen_docs target_name)
     DEPENDS ${DOXYFILE_IN}
     COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
     MAIN_DEPENDENCY ${DOXYFILE_OUT}
-    WORKING_DIRECTORY ${DOXYGEN_DIRECTORY}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     COMMENT "Generating Doxygen Documentation ...")
 
-  # Might be possible to combine with the above ... lets see (one day, we've
-  # wasted a whole day on this!!!).
-  add_custom_target(${target_name} DEPENDS ${DOXYGEN_XML_OUTPUT_FILE})
+  if(DOXYGEN_ALL)
+    add_custom_target(${target_name} ALL DEPENDS ${DOXYGEN_XML_OUTPUT_FILE})
+  else()
+    add_custom_target(${target_name} DEPENDS ${DOXYGEN_XML_OUTPUT_FILE})
+  endif()
+
   add_dependencies(${target_name} ${DOXYGEN_TARGETS})
 
 endfunction()
@@ -292,40 +236,41 @@ endfunction()
 function(_get_target_doxygen_sources out_var)
 
   set(options)
-  set(oneValueArgs DIRECTORY)
+  set(oneValueArgs)
   set(multiValueArgs TARGETS)
 
   cmake_parse_arguments(PARSE_ARGV 1 DOXYGEN "${options}" "${oneValueArgs}"
                         "${multiValueArgs}")
 
   if(NOT DEFINED DOXYGEN_TARGETS)
-    message(
-      FATAL_ERROR "TARGETS keyword must specified with at least one target.")
-  endif()
-
-  if(NOT DEFINED DOXYGEN_DIRECTORY)
-    set(DOXYGEN_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
-  elseif(NOT IS_ABSOLUTE ${DOXYGEN_DIRECTORY})
-    set(DOXYGEN_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/${DOXYGEN_DIRECTORY}")
+    error_msg_with_func_call(
+      MODE FATAL_ERROR MSG
+      "TARGETS keyword must specified with at least one target." ${ARGV})
   endif()
 
   foreach(target ${DOXYGEN_TARGETS})
     get_sources_and_headers(_TARGET_SOURCES ${target})
 
-    # I was going to extract but somewhat specific use case so leave it for now
-    # Plus so much time wasted!!
     foreach(source_path ${_TARGET_SOURCES})
       if(NOT IS_ABSOLUTE ${source_path})
         get_target_property(_TARGET_SOURCE_DIR ${target} SOURCE_DIR)
-        set(source_path "${_TARGET_SOURCE_DIR}/${source_path}")
+
+        # TODO: Mini bug here as INTERFACE libraries have an issue with showing
+        # linkers sources as their own. However, hard to remove as they are
+        # allowed to have their own sources now (Cmake 3.19 IIRC) Fix would be
+        # required in PropertyUtils.
+        cmake_path(ABSOLUTE_PATH source_path BASE_DIRECTORY
+                   ${_TARGET_SOURCE_DIR})
       endif()
-      cmake_path(RELATIVE_PATH source_path BASE_DIRECTORY ${DOXYGEN_DIRECTORY}
-                 OUTPUT_VARIABLE source_relative_to_doxygen)
+      cmake_path(
+        RELATIVE_PATH source_path BASE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+        OUTPUT_VARIABLE source_relative_to_doxygen)
 
       list(APPEND DOCUMENTED_SOURCES ${source_relative_to_doxygen})
     endforeach()
   endforeach()
 
+  list(REMOVE_DUPLICATES DOCUMENTED_SOURCES)
   list(JOIN DOCUMENTED_SOURCES " " ${out_var})
   return(PROPAGATE ${out_var})
 

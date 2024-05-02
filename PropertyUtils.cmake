@@ -111,7 +111,16 @@ function(set_direct_subtargets_folder folder_name)
   set_target_properties(${subtargets} PROPERTIES FOLDER ${folder_name})
 endfunction()
 
+# Unfortunatly, for interface libraries this also gets the sources and
+# headers included by libraries linking to it (which is very strange)
+# I havent got time to deal with this now so if you do this for multiple
+# targets you may need/want to strip duplicates. Is this an error with cmake?
+# find out when you have time.
+#
 function(get_sources_and_headers out_var target)
+  # TODO: Mini bug here as INTERFACE libraries have an issue with 
+  # showing linkers sources as their own. However, hard to remove as they are
+  # allowed to have their own sources now (Cmake 3.19 IIRC)
   get_target_property(_TARGET_SOURCE_FILES ${target} SOURCES)
   if(NOT _TARGET_SOURCE_FILES STREQUAL "_TARGET_SOURCE_FILES-NOTFOUND")
     set(${out_var} ${_TARGET_SOURCE_FILES})
@@ -120,6 +129,7 @@ function(get_sources_and_headers out_var target)
   foreach(_header_set_name ${_HEADER_SET_NAMES})
     get_target_property(_HEADER_SET ${target} HEADER_SET_${_header_set_name})
     # TODO: Check if we need an if(DEFINED ...) here too!
+    # Probably not as if _HEADER_SET_NAMES is empty? Maybe check needed before?
     list(APPEND ${out_var} ${_HEADER_SET})
   endforeach()
   return(PROPAGATE ${out_var})
