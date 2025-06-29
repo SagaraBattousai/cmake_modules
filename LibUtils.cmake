@@ -1,3 +1,5 @@
+# TODO: Why does this have to be run twice!!! crashes on first run ....
+#
 # Unfortunatly this must be called in the directory where the target is defined
 # so we can't get them all dynamically
 #
@@ -32,7 +34,8 @@ function(copy_dlls_to_target target)
   # Ensure targets are built *before* the DLL's are copied
   add_dependencies(${COPY_DLL_TARGET_NAME} ${target_libraries})
   
-  add_dependencies(${target} ${COPY_DLL_TARGET_NAME})
+  # Ensure executable has been built so the directory exists
+  add_dependencies(${COPY_DLL_TARGET_NAME} ${target})
 
   # Store in separate folder
   set_target_properties(${COPY_DLL_TARGET_NAME}
