@@ -41,12 +41,13 @@ function(fetch_googletest)
   FetchContent_MakeAvailable(googletest)
 
   if(DEFINED FGT_HIDDEN) 
-    set_target_properties(gtest gtest_main gmock gmock_main
-      PROPERTIES FOLDER ${FGT_HIDDEN})
-  elseif("HIDDEN" IN_LIST FGT_KEYWORDS_MISSING_VALUES)
-    set_target_properties(gtest gtest_main gmock gmock_main
+    if("HIDDEN" IN_LIST FGT_KEYWORDS_MISSING_VALUES)
+      set_target_properties(gtest gtest_main gmock gmock_main
                           PROPERTIES FOLDER Tests/googletest)
-
+    else()
+      set_target_properties(gtest gtest_main gmock gmock_main
+        PROPERTIES FOLDER ${FGT_HIDDEN})
+    endif()
   endif()
 
 
