@@ -40,3 +40,39 @@ macro(set_language_standards)
   endif()
 
 endmacro()
+
+#TODO: Test but for now..... Ive wasted too much time.
+function(set_cache_choices var)
+  set(options FORCE)
+  # TODO: Help string and DEFAULT value
+  set(oneValueArgs HELP VALUE)
+  set(multiValueArgs CHOICES) 
+  cmake_parse_arguments(PARSE_ARGV 1 arg 
+    "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+  if(DEFINED arg_KEYWORDS_MISSING_VALUES AND multiValueArgs IN_LIST arg_KEYWORDS_MISSING_VALUES)
+    message(WARNING "CHOICES keyword given but no values pased")
+    return()
+  endif()
+
+  if(NOT DEFINED arg_HELP)
+    set(arg_HELP "")
+  endif()
+
+  if(NOT DEFINED arg_VALUE)
+    set(arg_VALUE "")
+  endif()
+
+  if(arg_FORCE)
+    set(force_cache_value "FORCE")
+  endif()
+
+  set(CACHE{${var}} TYPE STRING HELP arg_HELP ${force_cache_value} VALUE arg_VALUE)
+
+  if(NOT DEFINED arg_CHOICES)
+    message(WARNING "No Choices passed")
+  else()
+    set_property(CACHE ${var} PROPERTY STRINGS ${arg_CHOICES})
+  endif()
+
+endfunction()
