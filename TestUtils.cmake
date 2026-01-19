@@ -50,5 +50,4 @@ function(fetch_googletest)
     endif()
   endif()
 
-
 endfunction()
