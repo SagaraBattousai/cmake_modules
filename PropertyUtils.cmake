@@ -1,9 +1,14 @@
-# Property Utils
-# ---------------
-#
-# This module provides functions and macros for generating details from
-# properties
-#
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
+#[=======================================================================[rst:
+Property Utils
+---------------
+
+This module provides functions and macros for generating details from properties.
+
+
+#]=======================================================================]
 
 include(ErrorUtils)
 

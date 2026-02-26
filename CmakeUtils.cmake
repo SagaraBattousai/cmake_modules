@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 macro(set_language_standards)
   set(options REQUIRED)
   set(oneValueArgs C CXX CUDA HIP OBJC OBJCXX)

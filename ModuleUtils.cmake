@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 
 #For MSVC this adds the object files corresponding to the "expected"
 #Module implementation files and aids intelisense by providing

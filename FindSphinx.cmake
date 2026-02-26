@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 # Hints get searched before the system paths.
 # They should only be set by some source of knowledge, 
 # location of other files, etc and not populated with "guesses" or default locations.

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 include(FetchContent)
 include(ErrorUtils)
 # Potentially better to have as a macro (especially thanks to

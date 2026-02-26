@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 # TODO: Do it properly later but fornow well just print the formatted hex so we can copy and paste
 
 function(embed_file_as_macro file_path ouput_path macro_name)

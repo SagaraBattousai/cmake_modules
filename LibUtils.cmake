@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 # Unfortunatly this must be called in the directory where the target is defined
 # so we can't get them all dynamically
 #

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 function(func_call_text variable func_name) # ARGN =  func_args
   list(JOIN ARGN " " args)
   set(${variable}

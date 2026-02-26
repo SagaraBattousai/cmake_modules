@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 # Don't (potentially yet) support the Stable Application Binary Interface
 # Extension version True support only if using find_package(Python3 ...) /
 # FindPython3. If using FindPython or FindPython2 please set

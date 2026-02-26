@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright © 2024-2026 James Calo
+
 # Make Smarter
 function(add_qt_cmake_to_prefix_path)
   if(DEFINED ENV{QT_CMAKE_MODULE_PATH})
